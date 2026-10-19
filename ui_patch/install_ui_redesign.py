@@ -387,6 +387,17 @@ def main():
         p.write_text(content, encoding="utf-8")
         print("replaced", name)
 
+    # Compatibility fix for current AnimeSDK dump: the old generated field
+    # Field_2_4 no longer exists. In upstream it was only used as a non-null
+    # sentinel and LastShit is not otherwise consumed, so preserve the sentinel
+    # semantics with _this instead of referencing a removed generated field.
+    battle_speed = repo / "battle_speed_changer.cpp"
+    if battle_speed.exists():
+        text = battle_speed.read_text(encoding="utf-8")
+        text = text.replace("_this->Field_2_4", "_this")
+        battle_speed.write_text(text, encoding="utf-8")
+        print("patched AnimeSDK compatibility in battle_speed_changer.cpp")
+
     for name, mapping in TRANSLATE.items():
         p = repo / name
         if not p.exists():
