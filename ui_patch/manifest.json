@@ -1,0 +1,7 @@
+{
+  "project": "Pipsi-HSR",
+  "target": "current upstream",
+  "ui": "Star-Rail-inspired glass redesign",
+  "language": "zh-TW",
+  "build": "GitHub Actions Release x64"
+}
