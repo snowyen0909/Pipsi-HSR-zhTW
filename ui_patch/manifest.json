@@ -1,7 +1,8 @@
 {
   "project": "Pipsi-HSR",
-  "target": "current upstream",
-  "ui": "Star-Rail-inspired glass redesign",
+  "mode": "localization-only",
   "language": "zh-TW",
+  "preserve_original_ui": true,
+  "preserve_original_input_logic": true,
   "build": "GitHub Actions Release x64"
 }
