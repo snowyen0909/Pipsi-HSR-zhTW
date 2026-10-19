@@ -11,29 +11,28 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg
 
 namespace Menu
 {
+    static bool MenuVisible = false;
+
     static BOOL OnWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     {
-        if (hIl2Cpp)
+        Input::UpdateKeyState(uMsg, wParam, lParam);
+
+        if (MenuVisible)
         {
-            Input::UpdateKeyState(uMsg, wParam, lParam);
+            if (ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam))
+                return FALSE;
 
-            if (Input::IsKeyToggled(Options.MenuKey))
+            switch (uMsg)
             {
-                if (ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam))
-                    return FALSE;
-
-                switch (uMsg)
-                {
-                case WM_MOVE: case WM_SIZE: case WM_ACTIVATE: case WM_SETFOCUS:
-                case WM_KILLFOCUS: case WM_PAINT: case WM_ERASEBKGND:
-                case WM_ACTIVATEAPP: case WM_GETMINMAXINFO:
-                case WM_WINDOWPOSCHANGING: case WM_WINDOWPOSCHANGED:
-                case WM_NCCALCSIZE: case WM_NCHITTEST: case WM_NCPAINT:
-                case WM_NCACTIVATE: case WM_SIZING: case WM_MOVING:
-                    break;
-                default:
-                    return FALSE;
-                }
+            case WM_MOVE: case WM_SIZE: case WM_ACTIVATE: case WM_SETFOCUS:
+            case WM_KILLFOCUS: case WM_PAINT: case WM_ERASEBKGND:
+            case WM_ACTIVATEAPP: case WM_GETMINMAXINFO:
+            case WM_WINDOWPOSCHANGING: case WM_WINDOWPOSCHANGED:
+            case WM_NCCALCSIZE: case WM_NCHITTEST: case WM_NCPAINT:
+            case WM_NCACTIVATE: case WM_SIZING: case WM_MOVING:
+                break;
+            default:
+                return FALSE;
             }
         }
         return TRUE;
@@ -94,16 +93,21 @@ namespace Menu
 
     static void OnFrame()
     {
-        if (!hIl2Cpp)
-            return;
-
         if (!ThemeApplied)
         {
             ApplyTheme();
             ThemeApplied = true;
         }
 
-        if (Input::IsKeyToggled(Options.MenuKey))
+        // Use Win32 async key polling as a robust fallback. This keeps INSERT
+        // working even when the game's WndProc messages are not reaching Input.
+        if (Options.MenuKey != 0 && Options.MenuKey != 0xFF &&
+            (GetAsyncKeyState(Options.MenuKey) & 1))
+        {
+            MenuVisible = !MenuVisible;
+        }
+
+        if (MenuVisible)
         {
             ImGui::SetNextWindowSize(ImVec2(1000, 650), ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowSizeConstraints(ImVec2(820, 520), ImVec2(1500, 1000));
@@ -167,7 +171,8 @@ namespace Menu
             ImGui::End();
         }
 
-        Cheat::OnFrame();
+        if (hIl2Cpp)
+            Cheat::OnFrame();
     }
 
     bool Setup()
