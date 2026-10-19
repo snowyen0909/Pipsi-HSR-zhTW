@@ -2,6 +2,8 @@ name: Build Pipsi-HSR zh-TW UI
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
 
 jobs:
   build:
@@ -9,10 +11,10 @@ jobs:
 
     steps:
       - name: Checkout builder files
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -22,6 +24,34 @@ jobs:
           git clone --depth 1 https://github.com/Z4ee/Pipsi-HSR.git upstream
           if (!(Test-Path "upstream\Pipsi-HSR.sln")) {
             throw "Pipsi-HSR.sln not found after clone."
+          }
+
+      - name: Prepare AnimeSDK headers
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path .\upstream\include\global -Force | Out-Null
+          git clone --depth 1 --branch honkai-star-rail https://github.com/Z4ee/animesdk.git .\upstream\include\global
+
+          if (!(Test-Path ".\upstream\include\global\unitysdk")) {
+            throw "AnimeSDK unitysdk headers were not downloaded."
+          }
+
+      - name: Install detours dependency
+        shell: pwsh
+        run: |
+          $vcpkg = "C:\vcpkg\vcpkg.exe"
+          if (!(Test-Path $vcpkg)) {
+            throw "vcpkg.exe not found at C:\vcpkg\vcpkg.exe"
+          }
+
+          & $vcpkg install detours:x64-windows-static
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to install detours via vcpkg."
+          }
+
+          & $vcpkg integrate install
+          if ($LASTEXITCODE -ne 0) {
+            throw "vcpkg integrate install failed."
           }
 
       - name: Apply zh-TW UI redesign
