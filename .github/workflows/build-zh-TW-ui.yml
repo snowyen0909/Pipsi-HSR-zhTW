@@ -1,0 +1,112 @@
+name: Build Pipsi-HSR zh-TW UI
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout builder files
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Clone Pipsi-HSR source
+        shell: pwsh
+        run: |
+          git clone --depth 1 https://github.com/Z4ee/Pipsi-HSR.git upstream
+          if (!(Test-Path "upstream\Pipsi-HSR.sln")) {
+            throw "Pipsi-HSR.sln not found after clone."
+          }
+
+      - name: Apply zh-TW UI redesign
+        shell: pwsh
+        run: |
+          python .\ui_patch\install_ui_redesign.py .\upstream
+          if ($LASTEXITCODE -ne 0) {
+            throw "UI patch failed."
+          }
+
+      - name: Locate MSBuild
+        id: msbuild
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          if (!(Test-Path $vswhere)) {
+            throw "vswhere.exe not found."
+          }
+
+          $msbuild = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -find MSBuild\**\Bin\MSBuild.exe |
+            Select-Object -First 1
+
+          if (!$msbuild) {
+            throw "MSBuild not found."
+          }
+
+          "path=$msbuild" >> $env:GITHUB_OUTPUT
+          Write-Host "MSBuild: $msbuild"
+
+      - name: Build Release x64
+        shell: pwsh
+        run: |
+          $env:CL = "/utf-8"
+          & "${{ steps.msbuild.outputs.path }}" .\upstream\Pipsi-HSR.sln `
+            /m `
+            /t:Build `
+            /p:Configuration=Release `
+            /p:Platform=x64 `
+            /verbosity:minimal
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Build failed."
+          }
+
+      - name: Collect output
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path artifact -Force | Out-Null
+
+          $dll = Get-ChildItem .\upstream -Recurse -Filter *.dll -File |
+            Where-Object { $_.FullName -match '\\(x64|Release|bin)\\' } |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -First 1
+
+          if (!$dll) {
+            $dll = Get-ChildItem .\upstream -Recurse -Filter *.dll -File |
+              Sort-Object LastWriteTime -Descending |
+              Select-Object -First 1
+          }
+
+          if (!$dll) {
+            throw "No built DLL found."
+          }
+
+          Write-Host "Built DLL: $($dll.FullName)"
+          Copy-Item $dll.FullName .\artifact\Cheat.dll -Force
+
+          @"
+          Pipsi-HSR zh-TW UI Redesign
+
+          File:
+          Cheat.dll
+
+          Replace the existing Cheat.dll in your GlobalSR folder.
+          Keep a backup of the original DLL first.
+          "@ | Set-Content .\artifact\README.txt -Encoding UTF8
+
+          Get-FileHash .\artifact\Cheat.dll -Algorithm SHA256 |
+            Format-List | Out-String |
+            Set-Content .\artifact\SHA256.txt -Encoding UTF8
+
+      - name: Upload ready DLL
+        uses: actions/upload-artifact@v4
+        with:
+          name: Pipsi-HSR-zh-TW-UI-ready
+          path: artifact/*
+          if-no-files-found: error
+          retention-days: 30
