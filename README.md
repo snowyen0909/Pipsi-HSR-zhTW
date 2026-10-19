@@ -1,40 +1,32 @@
-# Pipsi-HSR 繁中 UI 雲端編譯
+# Pipsi-HSR 繁體中文化
 
-這個 Repository 會使用 GitHub Actions 的 Windows runner 自動編譯，所以你的電腦不用安裝 Visual Studio / C++。
+這個 Repository 現在只做 **繁體中文化**，不再修改原本 UI 版面、選單結構或按鍵邏輯。
 
-## 怎麼開始
+## 雲端編譯
 
 1. 點上方 **Actions**
-2. 左側選 **Build Pipsi-HSR zh-TW UI**
+2. 左邊選 **Build Pipsi-HSR zh-TW UI**
 3. 點 **Run workflow**
 4. 等待綠色勾勾
 
-## 下載成品
-
-完成後點進那次執行，在頁面下方 **Artifacts** 下載：
+完成後，在該次執行頁面的 **Artifacts** 下載：
 
 `Pipsi-HSR-zh-TW-UI-ready`
 
-解壓後會得到：
+裡面會有：
 - `Cheat.dll`
 - `README.txt`
 - `SHA256.txt`
 
-把新的 `Cheat.dll` 放回原本 `GlobalSR` 資料夾，建議先把舊版改名成 `Cheat.original.dll` 備份。
+把新的 `Cheat.dll` 替換到原本的 `GlobalSR` 資料夾即可。建議先備份原版 DLL。
 
-## 自動流程
+## 目前只做這些修改
 
-```text
-下載 Pipsi-HSR 原始碼
-→ 套用繁體中文 UI Redesign
-→ MSVC Release / x64 編譯
-→ 上傳 Cheat.dll Artifact
-```
+- 原版 UI 版面完全保留
+- 原版 INSERT 選單按鍵邏輯保留
+- 原版 ImGui 元件保留
+- 將功能名稱與常用操作文字翻成繁體中文
+- 加入 Windows 中文字型載入，避免中文變成方框
+- 保留必要的 AnimeSDK 編譯相容修正
 
-目前 UI 方向：
-- 深藍玻璃介面
-- 金色點綴
-- 左側導航
-- 戰鬥 / 探索 / 視覺 / 其他
-- 卡片式功能區
-- 繁體中文
+不再套用之前的深藍玻璃新版 UI。
